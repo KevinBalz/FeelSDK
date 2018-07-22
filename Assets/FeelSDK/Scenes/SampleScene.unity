@@ -269,4 +269,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   subscribeForFingerUpdates: 1
-  deviceName: \\.\COM3
+  deviceName: COM3

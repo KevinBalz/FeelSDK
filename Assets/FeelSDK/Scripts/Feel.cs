@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 
 public class Feel
 {
@@ -12,6 +13,10 @@ public class Feel
     static extern void FEEL_Destroy(IntPtr feel);
     [DllImport("libfeelc")]
     static extern void FEEL_Connect(IntPtr feel, string deviceName);
+    [DllImport("libfeelc")]
+    static extern unsafe void FEEL_GetAvailableDevices(IntPtr feel, out FeelStringArrayHandle handle, out char** devices, out int deviceCount);
+    [DllImport("libfeelc")]
+    static extern void FEEL_ReleaseFeelStringArrayHandle(IntPtr handle);
     [DllImport("libfeelc")]
     static extern void FEEL_BeginSession(IntPtr feel);
     [DllImport("libfeelc")]
@@ -55,7 +60,32 @@ public class Feel
     {
         FEEL_Connect(feelPtr, deviceName);
     }
-    
+
+    public string[] GetAvailableDevices()
+    {
+        string[] devices;
+        unsafe
+        {
+            char** deviceStrs;
+            int deviceCount;
+            FeelStringArrayHandle handle;
+            FEEL_GetAvailableDevices(feelPtr, out handle, out deviceStrs, out deviceCount);
+            devices = new string[deviceCount];
+            Debug.Log(deviceCount);
+            for (int i = 0; i < deviceCount; i++)
+            {
+                devices[i] = new string(deviceStrs[i]);
+                Debug.Log(*deviceStrs[i]);
+                Debug.Log(new string(deviceStrs[i]));
+                Debug.Log(devices[i]);
+            }
+            handle.Dispose();
+        }
+
+        return devices;
+    }
+
+
     public void BeginSession()
     {
         FEEL_BeginSession(feelPtr);
@@ -97,5 +127,18 @@ public class Feel
     {
         _currentDebugLogCallback = _debugLogCallback;
         FEEL_ParseMessages(feelPtr);
+    }
+
+    class FeelStringArrayHandle : SafeHandleZeroOrMinusOneIsInvalid
+    {
+        public FeelStringArrayHandle() : base(true)
+        {
+        }
+
+        protected override bool ReleaseHandle()
+        {
+            FEEL_ReleaseFeelStringArrayHandle(handle);
+            return true;
+        }
     }
 }
