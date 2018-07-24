@@ -14,6 +14,8 @@ public class Feel
     [DllImport("libfeelc")]
     static extern void FEEL_Connect(IntPtr feel, string deviceName);
     [DllImport("libfeelc")]
+    static extern void FEEL_Disconnect(IntPtr feel);
+    [DllImport("libfeelc")]
     static extern unsafe void FEEL_GetAvailableDevices(IntPtr feel, out FeelStringArrayHandle handle, out char** devices, out int deviceCount);
     [DllImport("libfeelc")]
     static extern void FEEL_ReleaseFeelStringArrayHandle(IntPtr handle);
@@ -59,6 +61,11 @@ public class Feel
     public void Connect(string deviceName)
     {
         FEEL_Connect(feelPtr, deviceName);
+    }
+
+    public void Disconnect()
+    {
+        FEEL_Disconnect(feelPtr);
     }
 
     public string[] GetAvailableDevices()

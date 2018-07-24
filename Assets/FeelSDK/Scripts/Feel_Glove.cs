@@ -32,6 +32,7 @@ public class Feel_Glove : MonoBehaviour
     {
         if (device == null) return;
         device.EndSession();
+        device.Disconnect();
         device.Destroy();
         device = null;
     }
