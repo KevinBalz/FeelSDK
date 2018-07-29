@@ -4,22 +4,17 @@ using UnityEngine;
 
 public class Feel_Glove : MonoBehaviour
 {
-    public bool subscribeForFingerUpdates = true;
     public string deviceName;
     public Feel device { get; private set; }
 
     void Awake()
     {
         device = new Feel();
-        device.Connect(deviceName);
-    }
-
-    void Start()
-    {
-        if (subscribeForFingerUpdates)
+        foreach (var d in device.GetAvailableDevices())
         {
-            device.SubscribeForFingerUpdates();
+            Debug.Log(d);
         }
+        device.Connect(deviceName);
     }
 
     void FixedUpdate()

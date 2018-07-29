@@ -268,5 +268,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1d7f6bb4dd18a4d448d5a7d380b9eb7a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  subscribeForFingerUpdates: 1
-  deviceName: COM3
+  deviceName: Simulator

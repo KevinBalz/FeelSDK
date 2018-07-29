@@ -8,7 +8,11 @@ using Microsoft.Win32.SafeHandles;
 public class Feel
 {
     [DllImport("libfeelc")]
-    static extern IntPtr FEEL_CreateNew();
+    static extern IntPtr FEEL_CreateNewWithDevice(IntPtr device);
+    [DllImport("libfeelc")]
+    static extern IntPtr FEEL_CreateWithSerialDevice();
+    [DllImport("libfeelc")]
+    static extern IntPtr FEEL_CreateWithSimulatorDevice();
     [DllImport("libfeelc")]
     static extern void FEEL_Destroy(IntPtr feel);
     [DllImport("libfeelc")]
@@ -20,15 +24,19 @@ public class Feel
     [DllImport("libfeelc")]
     static extern void FEEL_ReleaseFeelStringArrayHandle(IntPtr handle);
     [DllImport("libfeelc")]
+    static extern void FEEL_StartNormalization(IntPtr feel);
+    [DllImport("libfeelc")]
     static extern void FEEL_BeginSession(IntPtr feel);
     [DllImport("libfeelc")]
     static extern void FEEL_EndSession(IntPtr feel);
     [DllImport("libfeelc")]
-    static extern void FEEL_SubscribeForFingerUpdates(IntPtr feel, bool active);
+    static extern void FEEL_SetFingerAngle(IntPtr feel, int finger, float angle, int force);
     [DllImport("libfeelc")]
-    static extern void FEEL_SetFingerAngle(IntPtr feel, int finger, float angle);
+    static extern void FEEL_ReleaseFinger(IntPtr feel, int finger);
     [DllImport("libfeelc")]
     static extern float FEEL_GetFingerAngle(IntPtr feel, int finger);
+    [DllImport("libfeelc")]
+    static extern int FEEL_GetStatus(IntPtr feel);
     [DllImport("libfeelc")]
     static extern void FEEL_ParseMessages(IntPtr feel);
     
@@ -43,7 +51,7 @@ public class Feel
 
     public Feel()
     {
-        feelPtr = FEEL_CreateNew();
+        feelPtr = FEEL_CreateWithSimulatorDevice();
         _debugLogCallback = (s) =>{ Debug.Log("FEEL: " + s); };
         _currentDebugLogCallback = _debugLogCallback;
         FEEL_SetDebugLogCallback(feelPtr, CallDebugLogCallback);
@@ -92,6 +100,10 @@ public class Feel
         return devices;
     }
 
+    public void StartNormalization()
+    {
+        FEEL_StartNormalization(feelPtr);
+    }
 
     public void BeginSession()
     {
@@ -103,14 +115,9 @@ public class Feel
         FEEL_EndSession(feelPtr);
     }
 
-    public void SubscribeForFingerUpdates(bool active = true)
+    public void SetFingerAngle(FeelFinger finger, float angle, int force)
     {
-        FEEL_SubscribeForFingerUpdates(feelPtr, active);
-    }
-
-    public void SetFingerAngle(FeelFinger finger, float angle)
-    {
-        FEEL_SetFingerAngle(feelPtr, (int) finger, angle);
+        FEEL_SetFingerAngle(feelPtr, (int) finger, angle, force);
     }
 
     public float GetFingerAngle(FeelFinger finger)
@@ -128,6 +135,11 @@ public class Feel
     static void CallDebugLogCallback(string s)
     {
        _currentDebugLogCallback.Invoke(s);
+    }
+
+    public int GetStatus() //TODO: replace int with enum
+    {
+        return FEEL_GetStatus(feelPtr);
     }
 
     public void ParseMessages()
