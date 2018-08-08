@@ -30,6 +30,8 @@ public class FeelAngleTester : MonoBehaviour
 
     void Update()
     {
+        if (feel.device.GetStatus() != FeelStatus.Active) return;
+
         foreach (FeelFinger finger in Enum.GetValues(typeof(FeelFinger)))
         {
             float angle = feel.device.GetFingerAngle(finger);
