@@ -190,6 +190,7 @@ GameObject:
   - component: {fileID: 534669904}
   - component: {fileID: 534669903}
   - component: {fileID: 534669906}
+  - component: {fileID: 534669907}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: Untagged
@@ -268,4 +269,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1d7f6bb4dd18a4d448d5a7d380b9eb7a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  deviceName: Simulator
+  deviceKind: 0
+  deviceName: COM4
+--- !u!114 &534669907
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 534669902}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ec6612a594d0374c802d3c66e40fff2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  feel: {fileID: 534669906}
+  midAngle: 60
+  releaseTolerance: 5

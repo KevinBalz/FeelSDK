@@ -51,8 +51,34 @@ public class Feel
 
     public Feel()
     {
-        feelPtr = FEEL_CreateWithSimulatorDevice();
-        _debugLogCallback = (s) =>{ Debug.Log("FEEL: " + s); };
+        feelPtr = FEEL_CreateWithSerialDevice();
+        Init();
+    }
+
+    public Feel(FeelDevice deviceKind)
+    {
+        switch(deviceKind)
+        {
+            case FeelDevice.Serial:
+                feelPtr = FEEL_CreateWithSerialDevice();
+                break;
+            case FeelDevice.Simulator:
+                feelPtr = FEEL_CreateWithSimulatorDevice();
+                break;
+            default: throw new NotImplementedException();
+        }
+        Init();
+    }
+
+    public Feel(IntPtr device)
+    {
+        feelPtr = FEEL_CreateNewWithDevice(device);
+        Init();
+    }
+
+    void Init()
+    {
+        _debugLogCallback = (s) => { Debug.Log("FEEL: " + s); };
         _currentDebugLogCallback = _debugLogCallback;
         FEEL_SetDebugLogCallback(feelPtr, CallDebugLogCallback);
     }
@@ -120,6 +146,11 @@ public class Feel
         FEEL_SetFingerAngle(feelPtr, (int) finger, angle, force);
     }
 
+    public void ReleaseFinger(FeelFinger finger)
+    {
+        FEEL_ReleaseFinger(feelPtr, (int) finger);
+    }
+
     public float GetFingerAngle(FeelFinger finger)
     {
         return FEEL_GetFingerAngle(feelPtr, (int) finger);
@@ -137,9 +168,9 @@ public class Feel
        _currentDebugLogCallback.Invoke(s);
     }
 
-    public int GetStatus() //TODO: replace int with enum
+    public FeelStatus GetStatus()
     {
-        return FEEL_GetStatus(feelPtr);
+        return (FeelStatus) FEEL_GetStatus(feelPtr);
     }
 
     public void ParseMessages()
