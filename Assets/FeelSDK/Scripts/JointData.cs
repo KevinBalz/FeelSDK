@@ -6,6 +6,5 @@ using UnityEngine;
 public class JointData
 {
     public Transform transform;
-    public Vector3 endPointOffset;
     public Vector2 angleConstraint;
 }

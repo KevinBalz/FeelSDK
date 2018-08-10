@@ -6,39 +6,146 @@ using System.Linq;
 public class HandRig : MonoBehaviour
 {
     public List<JointData> joints;
+    public Transform effectorTransform;
     public Transform targetTransform;
+    public Transform targetJoint;
+    public Vector2 fingerStretchedPosition;
+    public FeelTrigger collisionTrigger;
+    FeelUnity feel;
+    bool initialized;
+    float lastAngle;
+
+    IEnumerator Start()
+    {
+        feel = GetComponent<FeelUnity>();
+        feel.device.StartNormalization();
+        yield return new WaitWhile(() => feel.device.GetStatus() == FeelStatus.Normalization);
+        feel.device.BeginSession();
+        yield return null;
+        yield return null;
+        lastAngle = feel.device.GetFingerAngle(FeelFinger.HAND_0_THUMB_0);
+        initialized = true;
+    }
 
     void Update()
     {
-        DoIK();
+        if (!initialized) return;
+
+        var fingerAngle = feel.device.GetFingerAngle(FeelFinger.HAND_0_THUMB_0);
+        var angleDifference = fingerAngle - lastAngle;
+        var angle = fingerAngle / 180 * (joints[0].angleConstraint.y - joints[0].angleConstraint.x) + joints[0].angleConstraint.x;
+        joints[0].transform.localEulerAngles = new Vector3(0, 0, angle);
+
+        if (Input.GetButtonUp("Jump"))
+        {
+            targetJoint.localEulerAngles = Vector3.zero;
+            targetTransform.localPosition = new Vector3(fingerStretchedPosition.x, fingerStretchedPosition.y, 0);
+        }
+        else
+        {
+            var targetAngle = targetJoint.localEulerAngles;
+            targetAngle.z += angleDifference / 180 * 70;
+            targetJoint.localEulerAngles = targetAngle;
+        }
+
+        var constraint = joints[0].angleConstraint;
+        joints[0].angleConstraint = Vector2.zero;
+        DoCCD(targetTransform.position, 10);
+        joints[0].angleConstraint = constraint;
+
+        var releaseFinger = true;
+        if (collisionTrigger.colliders.Count > 0)
+        {
+            var other = collisionTrigger.colliders[0];
+            Vector3 direction;
+            float distance;
+            var overlapped = Physics.ComputePenetration(
+                    collisionTrigger.self, collisionTrigger.transform.position, collisionTrigger.transform.rotation,
+                    other, other.transform.position, other.transform.rotation,
+                    out direction, out distance);
+            if (overlapped)
+            {
+                Vector3 targetPos = targetTransform.position + direction * distance;
+                Quaternion[] endRotations;
+                DoCCD(targetPos, 10, out endRotations);
+                float newFingerAngle = (endRotations[0].eulerAngles.z - joints[0].angleConstraint.x) / (joints[0].angleConstraint.y - joints[0].angleConstraint.x) * 180;
+                newFingerAngle = (fingerAngle + newFingerAngle) / 2;
+                feel.device.SetFingerAngle(FeelFinger.HAND_0_THUMB_0, newFingerAngle, 50);
+                releaseFinger = false;
+            }
+        }
+
+        if (releaseFinger)
+        {
+            feel.device.ReleaseFinger(FeelFinger.HAND_0_THUMB_0);
+        }
+
+        lastAngle = fingerAngle;
     }
 
-    void DoIK()
+    static Vector3 RotateAroundPivot(Vector3 point, Vector3 pivot, Quaternion rotation)
+    {
+        return rotation * (point - pivot) + pivot;
+    }
+
+    static Vector3 UnRotatePosition(Transform child, Transform parent)
+    {
+        return UnRotatePosition(child.position, parent);
+    }
+
+    static Vector3 UnRotatePosition(Vector3 position, Transform parent)
+    {
+        return RotateAroundPivot(position, parent.position, Quaternion.Inverse(parent.rotation));
+    }
+
+    void DoCCD(Vector3 target, int times = 1)
     {
         var lastJoint = joints.Last();
-        Vector2 target = targetTransform.position;
-        Vector2 end = lastJoint.transform.position + lastJoint.transform.TransformDirection(lastJoint.endPointOffset);
-        Debug.Log(end);
-        foreach (var joint in joints.AsEnumerable().Reverse())
+        Plane plane = new Plane(joints[0].transform.position, joints[1].transform.position, effectorTransform.position);
+        Vector3 targetPosition = plane.ClosestPointOnPlane(target);
+        for (int iteration = 0; iteration < times; iteration++)
         {
-            Vector2 position = joint.transform.position;
-            var toEnd = end - position;
-            var toTarget = target - position;
-            var endRot = Quaternion.FromToRotation(toEnd, toTarget);
-            var rot = joint.transform.rotation * endRot;
-            if (rot.eulerAngles.z >= joint.angleConstraint.x && rot.eulerAngles.z <= joint.angleConstraint.y)
+            foreach (var joint in joints.AsEnumerable().Reverse())
             {
-                joint.transform.rotation = rot;
+                Vector2 position = UnRotatePosition(joint.transform, transform);
+                Vector2 toEnd = (Vector2) UnRotatePosition(effectorTransform, transform) - position;
+                Vector2 toTarget = (Vector2) UnRotatePosition(targetPosition, transform) - position;
+                var rot = Quaternion.FromToRotation(toEnd, toTarget);
+
+                joint.transform.localRotation *= rot;
+
+                var euler = RoundAngle(joint.transform.localEulerAngles.z);
+                if (euler < joint.angleConstraint.x || euler > joint.angleConstraint.y)
+                {
+                    joint.transform.localRotation *= Quaternion.Inverse(rot);
+                }
             }
-            end = lastJoint.transform.position + lastJoint.transform.TransformDirection(lastJoint.endPointOffset);
+        }      
+    }
+
+    void DoCCD(Vector2 target, int times, out Quaternion[] endRotations)
+    {
+        var savedRotations = joints.Select(j => j.transform.rotation).ToArray();
+        DoCCD(target, times);
+        endRotations = joints.Select(j => j.transform.rotation).ToArray();
+        for (int i = 0; i < joints.Count; i++)
+        {
+            joints[i].transform.rotation = savedRotations[i];
         }
     }
 
-    class BoneData
+    float RoundAngle(float angle)
     {
-        public Vector2 pos;
-        public float angle;
-        public float cosAngle;
-        public float sinAngle;
+        angle = angle % 360;
+        if (angle < -180)
+        {
+            angle += 360;
+        }
+        else if (angle > 180)
+        {
+            angle -= 360;
+        }
+
+        return angle;
     }
 }
