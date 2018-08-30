@@ -11,10 +11,6 @@ public class FeelUnity : MonoBehaviour
     void Awake()
     {
         device = new Feel(deviceKind);
-        foreach (var d in device.GetAvailableDevices())
-        {
-            Debug.Log(d);
-        }
         device.Connect(deviceName);
     }
 
